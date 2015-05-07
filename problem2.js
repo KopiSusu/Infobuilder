@@ -1,0 +1,210 @@
+// several game states to test
+// false implies that x has not crossed the river
+var start = {
+  father: false,
+  mother: false,
+  police: false,
+  theif: false,
+  son1: false,
+  son2: false,
+  daughter1: false,
+  daughter2: false
+};
+var testfinal = {
+  father: true,
+  mother: true,
+  police: true,
+  theif: true,
+  son1: true,
+  son2: true,
+  daughter1: true,
+  daughter2: true
+};
+var quartertest = {
+  father: true,
+  mother: false,
+  police: false,
+  theif: false,
+  son1: true,
+  son2: true,
+  daughter1: false,
+  daughter2: false
+};
+var halftest = {
+  father: false,
+  mother: false,
+  police: true,
+  theif: true,
+  son1: true,
+  son2: true,
+  daughter1: false,
+  daughter2: false
+};
+var almostdone = {
+  father: true,
+  mother: true,
+  police: false,
+  theif: false,
+  son1: true,
+  son2: true,
+  daughter1: true,
+  daughter2: false
+};
+var laststep = {
+  father: true,
+  mother: true,
+  police: false,
+  theif: false,
+  son1: true,
+  son2: true,
+  daughter1: true,
+  daughter2: true
+};
+
+
+(function init() {
+  // to test different states sub start with desired game state
+  var game = new Game(start);    
+  var counter = 0;
+  var keys = Object.keys(game.params);
+
+  // main game loop.
+  while (game.isFinal() == false) {
+    random = parseInt(Math.random() * 8);
+    randomadult = parseInt(Math.random() * 3);
+    if (game[keys[randomadult]] != true && game[keys[random]] != true) {
+      if(game.cross(keys[randomadult], keys[random]) == true) {
+        if (game.isValid() == false) {
+          counter++; 
+          console.log('attempt #' + counter);
+          game = new Game(start);
+          game.updateTrace();
+        } else if (game.isValid() == true) {
+          counter++; 
+          console.log('attempt #' + counter);
+        }
+      }
+    }
+  }
+  console.log('father : ' + game.father + ', ' + 'mother : ' + game.mother + ', ' + 'police : ' + game.police + ', ' + 'son1 : ' + game.son1 + ', ' + 'son2 : ' + game.son2 + ', ' + 'daughter1 : ' + game.daughter1 + ', ' + 'daughter2 : ' + game.daughter2 + ', ' + 'theif : ' + game.theif + ', ');
+})();
+
+function Game(params) {
+
+  // initial configuration
+  this.father = params.father;
+  this.mother = params.mother;
+  this.police = params.police;
+  this.theif = params.theif;
+  this.son1 = params.son1;
+  this.son2 = params.son2;
+  this.daughter1 = params.daughter1;
+  this.daughter2 = params.daughter2;
+
+  this.params = params;
+
+  // trace keeps track of objects on the other side of the river
+  this.trace = [];
+  this.adulttrace = [];
+
+
+  // cross the river with one of the items
+  // returns false on failure, true on success
+  this.cross = function (driver, bring) {
+    var random = Math.random();
+    var randomadult = 0;
+    var randombring = 0;
+
+    // is the item "bring" a valid item to bring?
+    if (driver == 'father') {
+      if(bring !== 'son1' && bring !== 'son2' && bring !== 'police' && bring !== 'mother' && bring !== null) {
+        return false;
+      }
+    } else if (driver == 'mother') {
+      if(bring !== 'daughter1' && bring !== 'daughter2' && bring !== 'police' && bring !== 'father' && bring !== null) {
+        return false;
+      }  
+    } else if (driver == 'police') {
+      if(bring !== 'daughter1' && bring !== 'daughter2' && bring !== 'mother' && bring !== 'father' && bring !== 'son1' && bring !== 'son2' && bring !== 'theif' && bring !== null) {
+        return false;
+      }  
+    } else {
+      return false;
+    }
+
+    // are the driver and the item "bring" on the same side of the river?
+    if(this[driver] !== this[bring] && bring !== null) {
+      return false;
+    }
+
+    // move the two across the river
+    this[driver] = !this[driver];
+    this[bring] = !this[bring];
+
+    // update the trace
+    this.updateTrace();
+
+    randombring = parseInt(Math.random() * this.trace.length);
+    randomadult = parseInt(Math.random() * this.adulttrace.length);
+
+
+    // cross back over the river if the game hasnt finished
+    if (this.isFinal() == true) {
+      return true;
+    } else if (this.trace.length == 0) {
+      this[this.adulttrace[randomadult]] = !this[this.adulttrace[randomadult]];
+      this.adulttrace.splice(randomadult);
+    } else {
+      if (random < 0.5) {
+        this[this.adulttrace[randomadult]] = !this[this.adulttrace[randomadult]];
+        this.adulttrace.splice(randomadult);
+      } else {
+        this[this.adulttrace[randomadult]] = !this[this.adulttrace[randomadult]];
+        this[this.trace[randombring]] = !this[this.trace[randombring]];
+        this.adulttrace.splice(randomadult);
+        this.trace.splice(randombring);
+      }
+    }
+
+    this.updateTrace();
+    return true;
+  };
+
+  // keep the trace updated
+  this.updateTrace = function() {
+    var keys = Object.keys(this.params);
+    for (var i=0; i<keys.length; i++) {
+      if(keys[i] == 'father' || keys[i] == 'mother' || keys[i] == 'police') {
+        if(this[keys[i]] == true && (this.adulttrace.indexOf( keys[i] ) > -1) == false ) {
+          this.adulttrace.push(keys[i]);
+        }
+      } else if ((this.trace.indexOf( keys[i] ) > -1) == false ){
+        if(this[keys[i]] == true) {
+          this.trace.push(keys[i]);
+        }
+      }
+    }
+  }
+
+  // checks to see whether the game is in a valid state
+  this.isValid = function () {
+    if ((this.mother != this.daughter1 && this.father == this.daughter1) || (this.mother != this.daughter2 && this.father == this.daughter2)) {
+      return false;
+    } else if ((this.father != this.son1 && this.mother == this.son1) || (this.father  != this.son2 && this.mother == this.son2)) {
+      return false;
+    } else if (this.theif != this.police && (this.theif == this.father || this.theif == this.mother || this.theif == this.son1 || this.theif == this.son2 || this.theif == this.daughter1 || this.theif == this.daughter2)) {
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  // checks if the game is in a final state
+  this.isFinal = function () {
+    if(this.father === true && this.mother === true && this.son1 === true && this.son2 === true && this.daughter1 === true && this.daughter2 === true && this.police === true && this.theif === true) {
+      return true;
+    }
+    return false;
+  };      
+};
+
